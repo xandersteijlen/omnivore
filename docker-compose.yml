@@ -2,21 +2,21 @@ version: '3.8'
 
 services:
   postgres:
-    image: ankane/pgvector:v0.5.1
-    user: postgres
-    container_name: omnivore-postgres
-    environment:
-      POSTGRES_USER: omnivore
-      POSTGRES_PASSWORD: change-this-password
-      POSTGRES_DB: omnivore
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U omnivore -d omnivore"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-    restart: unless-stopped
+  image: "ankane/pgvector:v0.5.1"
+  user: postgres
+  environment:
+    POSTGRES_USER: omnivore
+    POSTGRES_PASSWORD: omnivore_change_me
+    POSTGRES_DB: omnivore
+  ports:
+    - "5432:5432"
+  volumes:
+    - pgdata:/var/lib/postgresql/data
+  healthcheck:
+    test: ["CMD-SHELL", "pg_isready -U omnivore -d omnivore || exit 1"]
+    interval: 5s
+    timeout: 5s
+    retries: 20
 
   migrate:
     image: ghcr.io/omnivore-app/sh-migrate:latest
