@@ -2,21 +2,22 @@ version: '3.8'
 
 services:
   postgres:
-  image: "ankane/pgvector:v0.5.1"
-  user: postgres
-  environment:
-    POSTGRES_USER: omnivore
-    POSTGRES_PASSWORD: omnivore_change_me
-    POSTGRES_DB: omnivore
-  ports:
-    - "5432:5432"
-  volumes:
-    - pgdata:/var/lib/postgresql/data
-  healthcheck:
-    test: ["CMD-SHELL", "pg_isready -U omnivore -d omnivore || exit 1"]
-    interval: 5s
-    timeout: 5s
-    retries: 20
+    image: "ankane/pgvector:v0.5.1"
+    user: postgres
+    environment:
+      POSTGRES_USER: omnivore
+      POSTGRES_PASSWORD: omnivore_change_me
+      POSTGRES_DB: omnivore
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U omnivore -d omnivore || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
 
   migrate:
     image: ghcr.io/omnivore-app/sh-migrate:latest
@@ -83,7 +84,7 @@ services:
     ports:
       - "9090:8080"
     environment:
-      - USE_FIREFOX=true
+      USE_FIREFOX: "true"
     env_file:
       - .env
     depends_on:
@@ -96,8 +97,8 @@ services:
   redis:
     image: redis:7.2.4
     container_name: omnivore-redis
-    expose:
-      - "6379"
+    ports:
+      - "6379:6379"
     healthcheck:
       test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
     volumes:
@@ -107,8 +108,6 @@ services:
   minio:
     image: minio/minio:latest
     container_name: omnivore-minio
-    expose:
-      - "9000"
     ports:
       - "10101:9000"
     healthcheck:
@@ -116,8 +115,8 @@ services:
       interval: 5s
       timeout: 1s
     environment:
-      - MINIO_ROOT_USER=minio
-      - MINIO_ROOT_PASSWORD=miniominio
+      MINIO_ROOT_USER: minio
+      MINIO_ROOT_PASSWORD: miniominio
     command: server /data
     volumes:
       - minio_data:/data
@@ -127,17 +126,17 @@ services:
     image: minio/mc
     container_name: omnivore-createbuckets
     environment:
-      - MINIO_ACCESS_KEY=minio
-      - MINIO_SECRET_KEY=miniominio
-      - BUCKET_NAME=omnivore
-      - ENDPOINT=http://minio:9000
-      - AWS_S3_ENDPOINT_URL=http://minio:9000
+      MINIO_ACCESS_KEY: minio
+      MINIO_SECRET_KEY: miniominio
     depends_on:
       - minio
     entrypoint: >
       /bin/sh -c "
       sleep 5;
-      until (/usr/bin/mc alias set myminio http://minio:9000 minio miniominio) do echo '...waiting...' && sleep 1; done;
+      until /usr/bin/mc alias set myminio http://minio:9000 minio miniominio; do
+        echo '...waiting...';
+        sleep 1;
+      done;
       /usr/bin/mc mb myminio/omnivore || true;
       /usr/bin/mc anonymous set public myminio/omnivore;
       exit 0;
